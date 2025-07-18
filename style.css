@@ -1,0 +1,56 @@
+#game {
+    display: flex;
+    flex-direction: row;
+
+    justify-content: start;
+    align-items: center;
+
+    width: 100vw;
+    height: 100vh;
+}
+
+#board {
+    display: grid;
+    overflow: hidden;
+
+    grid-template-columns: 32% 32% 32%;
+    column-gap: 1.333%;
+
+    grid-template-rows: 32% 32% 32%;
+    row-gap: 1.333%;
+
+    height: 90%;
+    width: 80%;
+}
+
+#sidebar {
+    display: flex;
+    flex-direction: column;
+
+    height: 90%;
+    width: 20%;
+}
+
+#sidebar input {
+    height: 12px;
+    width: 80%;
+}
+
+#sidebar button {
+    height: 24px;
+    width: 80%;
+
+    margin-top: auto;
+}
+
+div .p1 {
+    background-color: red;
+}
+div .p2 {
+    background-color: blue;
+}
+
+button {
+    height: 100%;
+    width: 100%;
+}

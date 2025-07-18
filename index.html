@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game">
+    <div id="board"></div>
+    <div id="sidebar">
+        <span>Player 1:</span>
+        <input type="text" id="p1">
+        <span>Wins:</span>
+        <span id="p1w"></span>
+        <br>
+        <span>Player 2</span>
+        <input type="text" id="p2">
+        <span>Wins:</span>
+        <span id="p2w"></span>
+        <button id="start">Start Game</button>
+    </div>
+</div>
+</body>
+<script>
+class Player {
+    constructor(name, token) {
+        this.name = name;
+        this.token = token;
+        this.wins = 0;
+    }
+    reward() {
+        this.wins++;
+    }
+    stats() {
+        return this.wins;
+    }
+}
+class Tile {
+    constructor(r, c) {
+        this.value = 0;
+        this.r = r;
+        this.c = c;
+    }
+    valueSet(value) {
+        this.value = value;
+    }
+    valueGet() {
+        return(this.value);
+    }
+}
+const ticTacToe = (function() {
+    var events = {
+        events: {},
+        on: function (eventName, fn) {
+            this.events[eventName] = this.events[eventName] || [];
+            this.events[eventName].push(fn);
+        },
+        off: function(eventName, fn) {
+            if (this.events[eventName]) {
+                for (var i = 0; i < this.events[eventName].length; i++) {
+                    if (this.events[eventName][i] === fn) {
+                        this.events[eventName].splice(i, 1);
+                        break;
+                    }
+                };
+            }
+        },
+        emit: function (eventName, data) {
+            if (this.events[eventName]) {
+                this.events[eventName].forEach(function(fn) {
+                    fn(data);
+                });
+            }
+        }
+    };
+
+    const screen = (function(){
+        function boardRestart() {
+            boardClear();
+            boardRender();
+        }
+        function boardClear(args) {
+            while (board.firstChild) {
+                board.removeChild(board.lastChild);
+            }
+        }
+        function boardRender(args) {
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const container = document.createElement('div');
+                    container.setAttribute('overflow', 'hidden');
+
+                    const tile = document.createElement('button');
+                    tile.setAttribute('grid-area', `${r} / ${c} / ${r+1} / ${c+1}`);
+                    tile.setAttribute('data-r', `${r}`);
+                    tile.setAttribute('data-c', `${c}`);
+                    tile.addEventListener('click', function(){
+                        events.emit('tileChosen', {tile:tile, r:r, c:c})}
+                    );
+                    container.appendChild(tile);
+                    board.appendChild(container);
+                }
+            }
+        }
+        function tokenDraw(args) {
+            let token = args.token;
+            let tile = args.tile;
+
+            if (token === 1) {
+                tile.parentElement.classList.add('p1');
+            } else if (token === 2) {
+                tile.parentElement.classList.add('p2');
+            }
+            tile.remove();
+        }
+        function statsUpdate(args) {
+            p1w.setAttribute('textContent', `${args[0].stats()}`);
+            p2w.setAttribute('textContent', `${args[1].stats()}`);
+        }
+
+        events.on('tokenPlaced', tokenDraw);
+        events.on('gameFinished', boardClear);
+        events.on('playersUpdated', statsUpdate);
+        events.on('gameInitiated', boardRender);
+        events.on('gameRestarted', boardRestart);
+
+        return {};
+    })();
+
+    const game = (function(){
+        function generate() {
+            board = [];
+            turn = 1;
+
+            for (let r = 0; r < 3; r++) {
+                board[r] = [];
+
+                for (let c = 0; c < 3; c++) {
+                    board[r][c] = new Tile(r, c);
+                }
+            }
+        }
+        function check() {
+            var checking = true;
+            var winner = 0;
+
+            this.triples.forEach((array) => {
+                if (checking) {
+                    var total = array.reduce((total, tile) => {
+                        return total + board[tile[0]][tile[1]].valueGet(); // coordinates as an array [y,x]
+                    }, "")
+
+                    if (total === "111") {
+                        winner = 1;
+                        checking = false;
+                    } else if (total === "222") {
+                        winner = 2;
+                        checking = false;
+                    };
+                };
+            });
+            return winner;
+        }
+        function place(args) {
+            let tile = args.tile;
+            let token = turn % 2 === 1 ? 1 : 2;
+            let r = args.r;
+            let c = args.c;
+
+            if (board[r][c].valueGet() === 0) {
+                board[r][c].valueSet(token);
+
+                events.emit('tokenPlaced', {r:r, c:c, token:token, tile:tile});
+            } else {
+                console.log("Invalid move: cell occupied");
+            }
+            let winner = check();
+            if (winner !== 0) {
+                players[winner - 1].reward();
+
+                events.emit("playersUpdated", players);
+                events.emit("gameFinished");
+
+                console.log(`Game over! Player ${winner} won!`);
+            }
+            turn++;
+        }
+        function init(args) {
+            generate();
+
+            players.push(new Player(`${args.p1.value}, 1`));
+            players.push(new Player(`${args.p2.value}, 2`));
+
+            console.log("Starting new game!");
+        }
+        triples = [
+            [[0,0],[0,1],[0,2]],
+            [[1,0],[1,1],[1,2]],
+            [[2,0],[2,1],[2,2]],
+            [[0,0],[1,0],[2,0]],
+            [[0,1],[1,1],[2,1]],
+            [[0,2],[1,2],[2,2]],
+            [[0,0],[1,1],[2,2]],
+            [[2,0],[1,1],[0,2]]];
+        let board = [];
+        let players = [];
+        let turn = 1;
+        events.on('tileChosen', place)
+        events.on('gameInitiated', init)
+        events.on('gameRestarted', generate);
+
+        return {};
+    })();
+    const board = document.querySelector('#board');
+    const sidebar = document.querySelector('#sidebar');
+    const p1w = document.querySelector('#p1w');
+    const p2w = document.querySelector('#p2w');
+    const start = document.querySelector('#start');
+
+    let players = {
+        p1:document.querySelector('#p1'),
+        p2:document.querySelector('#p2'),
+    }
+
+    function restartGame() {
+
+        events.emit('gameRestarted');
+    }
+    function startGame() {
+
+        events.emit('gameInitiated', players);
+        start.remove();
+
+        const restart = document.createElement('button');
+        restart.setAttribute('innerText', 'Restart Game');
+        restart.setAttribute('margin-top', 'auto');
+        restart.addEventListener('click', restartGame)
+        sidebar.appendChild(restart);
+    }
+    start.addEventListener('click', startGame);
+
+    return {};
+})();
+</script>
+</html>
